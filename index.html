@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Craft Record - v20261016</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ==================== 登录页 ==================== -->
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="brand-logo">JP TEXTILE ETHIOPIA PLC</div>
+    <h1 data-zh="工艺记录系统" data-en="Craft Record System">工艺记录系统</h1>
+    <input id="email" type="email" placeholder="邮箱 / Email" />
+    <input id="password" type="password" placeholder="密码 / Password" />
+    <label style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:#555;margin-bottom:12px;cursor:pointer;">
+      <input type="checkbox" id="rememberMe" style="width:auto;margin:0;" />
+      <span data-zh="记住我" data-en="Remember me">记住我</span>
+    </label>
+    <button id="loginBtn" onclick="login()" data-zh="登录" data-en="Login">登录</button>
+    <p id="loginMsg" class="msg"></p>
+    <button class="lang-btn" onclick="toggleLang()">EN / 中文</button>
+    <p style="font-size:11px;color:#aaa;margin-top:14px;text-align:center;">v20261016</p>
+  </div>
+</div>
+
+<!-- ==================== 仪表盘 ==================== -->
+<div id="dashboardPage" class="main-page" style="display:none;">
+  <header>
+    <div class="brand-logo">JP TEXTILE ETHIOPIA PLC</div>
+    <div class="header-top-row">
+      <div class="header-user">
+        <button onclick="toggleLang()" class="lang-btn">EN / 中文</button>
+        <span id="userEmail2"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="nav-bar">
+    <button onclick="goToDashboard()">🏠 仪表盘</button>
+    <button onclick="goToOrders()">📋 订单清单</button>
+    <button onclick="showBomPage()">🧪 BOM 管理</button>
+    <button onclick="showReport()">📊 报表</button>
+    <button onclick="showLogs()">📜 操作记录</button>
+    <button onclick="showSysLogs()" data-role="admin">🛠 系统日志</button>
+    <button onclick="openPwdModal()">🔑 修改密码</button>
+    <button onclick="logout()">🚪 退出</button>
+  </div>
+
+  <div class="header-actions-row">
+    <h1 data-zh="工艺记录仪表盘" data-en="Craft Dashboard">工艺记录仪表盘</h1>
+  </div>
+
+  <div class="dash-cards">
+    <div class="dash-card"><div class="dash-label">订单总数</div><div class="dash-value" id="dashOrders">0</div></div>
+    <div class="dash-card"><div class="dash-label">待处理</div><div class="dash-value" id="dashPending">0</div></div>
+    <div class="dash-card"><div class="dash-label">进行中</div><div class="dash-value" id="dashInProgress">0</div></div>
+    <div class="dash-card"><div class="dash-label">已完成</div><div class="dash-value" id="dashDone">0</div></div>
+    <div class="dash-card warn"><div class="dash-label">参数超标</div><div class="dash-value" id="dashParamOOS">0</div></div>
+    <div class="dash-card warn"><div class="dash-label">助剂超标</div><div class="dash-value" id="dashAuxOOS">0</div></div>
+  </div>
+</div>
+
+<!-- ==================== 订单清单 ==================== -->
+<div id="mainPage" class="main-page" style="display:none;">
+  <header>
+    <div class="brand-logo">JP TEXTILE ETHIOPIA PLC</div>
+    <div class="header-top-row">
+      <div class="header-user">
+        <button onclick="toggleLang()" class="lang-btn">EN / 中文</button>
+        <span id="userEmail"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="nav-bar">
+    <button onclick="goToDashboard()">🏠 仪表盘</button>
+    <button onclick="goToOrders()">📋 订单清单</button>
+    <button onclick="showBomPage()">🧪 BOM 管理</button>
+    <button onclick="showReport()">📊 报表</button>
+    <button onclick="showLogs()">📜 操作记录</button>
+    <button onclick="showSysLogs()" data-role="admin">🛠 系统日志</button>
+    <button onclick="openPwdModal()">🔑 修改密码</button>
+    <button onclick="logout()">🚪 退出</button>
+  </div>
+
+  <div class="header-actions-row">
+    <h1 data-zh="工艺订单清单" data-en="Craft Orders">工艺订单清单</h1>
+    <div class="header-stats">
+      <span class="stat-item">
+        <span class="stat-label">订单数</span>
+        <span class="stat-value" id="statOrders">0</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+  <input id="searchInput" type="text" class="search-wide"
+    placeholder="Contract / 客户 / 成品号 / 花型号 / 颜色"
+    oninput="renderOrders()" />
+
+  <select id="statusFilter" onchange="renderOrders()" style="padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+    <option value="">全部状态</option>
+    <option value="pending">待处理</option>
+    <option value="in_progress">进行中</option>
+    <option value="done">已完成</option>
+    <option value="cancelled">已取消</option>
+  </select>
+
+  <!-- ⭐ 新增：隐藏已完成 -->
+  <label class="inbound-check" style="margin-left:6px;">
+    <input type="checkbox" id="hideDone" onchange="renderOrders()" />
+    <span>隐藏已完成</span>
+  </label>
+
+  <!-- ⭐ 新增：每页条数 -->
+  <select id="pageSizeSelect" onchange="changePageSize()" style="padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+    <option value="20" selected>每页 20 条</option>
+    <option value="50">每页 50 条</option>
+    <option value="100">每页 100 条</option>
+    <option value="200">每页 200 条</option>
+  </select>
+
+  <button onclick="openAddOrderModal()" data-role="operator">+ 新增订单</button>
+  <button onclick="backupAll()" data-role="admin">💾 备份</button>
+</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Contract</th>
+          <th>客户</th>
+          <th>成品号</th>
+          <th>花型号</th>
+          <th>颜色</th>
+          <th>数量(Y)</th>
+          <th>状态</th>
+          <th>Order Date</th>
+          <th>Delivery</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="orderBody"></tbody>
+    </table>
+  </div>
+
+ <div class="pagination">
+  <button onclick="goFirstPage()" id="btnFirst">« 首页</button>
+  <button onclick="prevOrderPage()">上一页</button>
+  <span id="orderPageInfo"></span>
+  <button onclick="nextOrderPage()">下一页</button>
+  <button onclick="goLastPage()" id="btnLast">末页 »</button>
+
+  <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+    <span>跳转到</span>
+    <input id="orderGotoPage" type="number" min="1"
+      style="width:70px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;text-align:center;"
+      onkeydown="if(event.key==='Enter') gotoOrderPage()" />
+    <span>页</span>
+    <button onclick="gotoOrderPage()">跳转</button>
+  </span>
+</div>
+</div>
+
+<!-- ==================== 订单详情页 ==================== -->
+<div id="orderDetailPage" class="main-page" style="display:none;">
+  <header>
+    <div class="brand-logo">JP TEXTILE ETHIOPIA PLC</div>
+    <div class="header-top-row">
+      <div class="header-user">
+        <button onclick="toggleLang()" class="lang-btn">EN / 中文</button>
+        <span id="userEmailDetail"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="nav-bar">
+    <button onclick="goToDashboard()">🏠 仪表盘</button>
+    <button onclick="goToOrders()">📋 订单清单</button>
+    <button onclick="showBomPage()">🧪 BOM 管理</button>
+    <button onclick="showReport()">📊 报表</button>
+    <button onclick="showLogs()">📜 操作记录</button>
+    <button onclick="showSysLogs()" data-role="admin">🛠 系统日志</button>
+    <button onclick="openPwdModal()">🔑 修改密码</button>
+    <button onclick="logout()">🚪 退出</button>
+  </div>
+
+  <div class="header-actions-row">
+    <h1 id="detailTitle">订单详情</h1>
+    <div class="header-stats">
+      <span class="stat-item">
+        <span class="stat-label">工序数</span>
+        <span class="stat-value" id="detailProcCount">0</span>
+      </span>
+      <span class="stat-item">
+        <span class="stat-label">超标</span>
+        <span class="stat-value" id="detailOOS" style="color:#dc2626;">0</span>
+      </span>
+    </div>
+  </div>
+
+  <div id="detailBody"></div>
+</div>
+
+<!-- ==================== 新增/编辑订单弹窗 ==================== -->
+<div id="orderModal" class="modal" style="display:none;">
+  <div class="modal-box" style="width:820px; max-width:96vw;">
+    <h2 id="orderModalTitle">新增订单</h2>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <label>Contract * <input id="o_contract" placeholder="26JPE0582326" /></label>
+      <label>缸号/批号 <input id="o_batch_no" /></label>
+      <label>客户 <input id="o_customer" /></label>
+      <label>成品号 SIOC <input id="o_sioc" placeholder="FG-CV-00055" /></label>
+      <label>花型号 <input id="o_pattern_no" /></label>
+      <label>颜色 <input id="o_color_name" /></label>
+      <label>Fabric Number <input id="o_fabric_number" /></label>
+      <label>状态
+        <select id="o_status">
+          <option value="pending">待处理</option>
+          <option value="in_progress">进行中</option>
+          <option value="done">已完成</option>
+          <option value="cancelled">已取消</option>
+        </select>
+      </label>
+      <label>Order Date <input id="o_order_date" type="date" /></label>
+      <label>Delivery Date <input id="o_delivery_date" type="date" /></label>
+      <label>Warp Count <input id="o_warp_count" /></label>
+      <label>Weft Count <input id="o_weft_count" /></label>
+      <label>Warp Density <input id="o_warp_density" /></label>
+      <label>Weft Density <input id="o_weft_density" /></label>
+      <label>Weave <input id="o_weave" /></label>
+      <label>C/W <input id="o_cw" /></label>
+      <label>Fabric Weight <input id="o_fabric_weight" /></label>
+      <label style="grid-column:1/-1;">Fabric Content <input id="o_fabric_content" /></label>
+      <label style="grid-column:1/-1;">Finishing Methods <input id="o_finishing_methods" /></label>
+      <label>Order Qty (Y) <input id="o_order_qty_y" type="number" step="0.01" /></label>
+      <label>Producing Qty (M) <input id="o_producing_qty_m" type="number" step="0.01" /></label>
+      <label>Actual Billet Qty (M) <input id="o_actual_billet_qty_m" type="number" step="0.01" /></label>
+      <label style="grid-column:1/-1;">备注 <input id="o_note" /></label>
+    </div>
+    <div class="modal-actions">
+      <button onclick="saveOrder()">保存</button>
+      <button onclick="closeOrderModal()" class="cancel">取消</button>
+    </div>
+    <p id="orderMsg" class="msg"></p>
+  </div>
+</div>
+
+<!-- ==================== 复制订单弹窗 ==================== -->
+<div id="copyOrderModal" class="modal" style="display:none;">
+  <div class="modal-box" style="width:520px;">
+    <h2>复制订单</h2>
+    <div id="copyOrderSource" style="font-size:13px;color:#666;margin-bottom:12px;"></div>
+
+    <div class="form-grid" style="grid-template-columns:1fr;">
+      <label>新 Contract * <input id="copy_contract" /></label>
+      <label>新缸号 <input id="copy_batch_no" /></label>
+      <label>Order Date <input id="copy_order_date" type="date" /></label>
+      <label>Delivery Date <input id="copy_delivery_date" type="date" /></label>
+    </div>
+
+    <div style="margin-top:14px;padding:10px;background:#f9fafb;border-radius:8px;">
+      <div style="font-weight:bold;margin-bottom:8px;font-size:13px;">复制选项</div>
+      <label class="inbound-check" style="display:flex;margin-bottom:6px;">
+        <input type="checkbox" id="copy_processes" checked />
+        <span>复制工序（含参数 + 助剂标准用量）</span>
+      </label>
+      <label class="inbound-check" style="display:flex;margin-bottom:6px;">
+        <input type="checkbox" id="copy_actuals" />
+        <span>复制实际用量 / 实际参数值（一般不用勾）</span>
+      </label>
+      <label class="inbound-check" style="display:flex;">
+        <input type="checkbox" id="copy_aux_times" />
+        <span>复制工序开始/结束时间（一般不用勾）</span>
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="doCopyOrder()">确认复制</button>
+      <button onclick="closeCopyOrderModal()" class="cancel">取消</button>
+    </div>
+    <p id="copyOrderMsg" class="msg"></p>
+  </div>
+</div>
+
+<!-- ==================== 工序弹窗 ==================== -->
+<div id="processModal" class="modal" style="display:none;">
+  <div class="modal-box" style="width:600px;">
+    <h2 id="processModalTitle">新增工序</h2>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <label>工序名 *
+        <input id="p_process_name" placeholder="如 定型1 / 退浆 / 预缩" />
+      </label>
+      <label>顺序 <input id="p_seq" type="number" min="1" step="1" /></label>
+      <label>设备/机台 <input id="p_machine" /></label>
+      <label>操作人 <input id="p_operator" /></label>
+      <label>开始时间 <input id="p_start_time" type="datetime-local" /></label>
+      <label>结束时间 <input id="p_end_time" type="datetime-local" /></label>
+      <label>状态
+        <select id="p_status">
+          <option value="pending">待处理</option>
+          <option value="in_progress">进行中</option>
+          <option value="done">已完成</option>
+          <option value="skipped">跳过</option>
+        </select>
+      </label>
+      <label style="grid-column:1/-1;">标准要求 <input id="p_standard_note" /></label>
+      <label style="grid-column:1/-1;">结果 <input id="p_result" /></label>
+      <label style="grid-column:1/-1;">备注 <input id="p_note" /></label>
+    </div>
+    <div class="modal-actions">
+      <button onclick="saveProcess()">保存</button>
+      <button onclick="closeProcessModal()" class="cancel">取消</button>
+    </div>
+    <p id="processMsg" class="msg"></p>
+  </div>
+</div>
+
+<!-- ==================== 工艺参数弹窗 ==================== -->
+<div id="paramModal" class="modal" style="display:none;">
+  <div class="modal-box" style="width:460px;">
+    <h2 id="paramModalTitle">新增工艺参数</h2>
+    <div id="paramStageLabel" style="font-size:13px;color:#666;margin-bottom:10px;"></div>
+    <div class="form-grid">
+      <label>参数名 *
+        <select id="pa_param_name">
+          <option value="车速">车速</option>
+          <option value="压力">压力</option>
+          <option value="温度">温度</option>
+          <option value="门幅">门幅</option>
+          <option value="pH值">pH值</option>
+          <option value="时间">时间</option>
+          <option value="浴比">浴比</option>
+          <option value="张力">张力</option>
+          <option value="含水率">含水率</option>
+          <option value="其他">其他</option>
+        </select>
+      </label>
+      <label>单位 <input id="pa_param_unit" placeholder="℃ / m/min / cm" /></label>
+      <label>标准值 <input id="pa_standard_value" /></label>
+      <label>实际值 <input id="pa_actual_value" /></label>
+      <label style="grid-column:1/-1;">
+        <input type="checkbox" id="pa_is_out_of_spec" style="width:auto;" />
+        超标（手动勾选）
+      </label>
+      <label style="grid-column:1/-1;">备注 <input id="pa_note" /></label>
+    </div>
+    <div class="modal-actions">
+      <button onclick="saveProcessParam()">保存</button>
+      <button onclick="closeParamModal()" class="cancel">取消</button>
+    </div>
+    <p id="paramMsg" class="msg"></p>
+  </div>
+</div>
+
+<!-- ==================== 助剂投料弹窗 ==================== -->
+<div id="auxModal" class="modal" style="display:none;">
+  <div class="modal-box" style="width:520px;">
+    <h2 id="auxModalTitle">新增助剂投料</h2>
+    <div id="auxStageLabel" style="font-size:13px;color:#666;margin-bottom:10px;"></div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <label>助剂编号 <input id="ax_code" /></label>
+      <label>助剂名称 * <input id="ax_name" /></label>
+      <label>标准 g/100m <input id="ax_standard_dose" type="number" step="0.001" /></label>
+      <label>单位 <input id="ax_dose_unit" value="g/100m" /></label>
+      <label>容差 % <input id="ax_tolerance_pct" type="number" step="0.1" value="10" /></label>
+      <label>备注 <input id="ax_note" /></label>
+    </div>
+    <div class="modal-actions">
+      <button onclick="saveAuxUsage()">保存</button>
+      <button onclick="closeAuxModal()" class="cancel">取消</button>
+    </div>
+    <p id="auxMsg" class="msg"></p>
+  </div>
+</div>
+
+<!-- ==================== BOM 管理页 ==================== -->
+<div id="bomPage" class="main-page" style="display:none;">
+  <header>
+    <div class="brand-logo">JP TEXTILE ETHIOPIA PLC</div>
+    <div class="header-top-row">
+      <div class="header-user">
+        <button onclick="toggleLang()" class="lang-btn">EN / 中文</button>
+        <span id="userEmailBom"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="nav-bar">
+    <button onclick="goToDashboard()">🏠 仪表盘</button>
+    <button onclick="goToOrders()">📋 订单清单</button>
+    <button onclick="showBomPage()">🧪 BOM 管理</button>
+    <button onclick="showReport()">📊 报表</button>
+    <button onclick="showLogs()">📜 操作记录</button>
+    <button onclick="showSysLogs()" data-role="admin">🛠 系统日志</button>
+    <button onclick="openPwdModal()">🔑 修改密码</button>
+    <button onclick="logout()">🚪 退出</button>
+  </div>
+
+  <div class="header-actions-row">
+    <h1>BOM 配方管理</h1>
+    <div class="header-right">
+      <button onclick="openBomImportModal()" data-role="admin">📥 导入 BOM CSV</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>成品号</th>
+          <th>品名</th>
+          <th>分类</th>
+          <th>状态</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="bomBody"></tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <button onclick="bomPrevPage()">上一页</button>
+    <span id="bomPageInfo"></span>
+    <button onclick="bomNextPage()">下一页</button>
+  </div>
+</div>
+
+<!-- BOM 详情弹窗 -->
+<div id="bomDetailModal" class="modal" style="display:none;">
+  <div class="modal-box" style="width:960px; max-width:96vw;">
+    <h2 id="bomDetailTitle">BOM 详情</h2>
+    <div id="bomDetailBody"></div>
+    <div class="modal-actions">
+      <button onclick="closeBomDetailModal()" class="cancel">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOM CSV 导入弹窗 -->
+<div id="bomImportModal" class="modal" style="display:none;">
+  <div class="modal-box" style="width:680px;">
+    <h2>导入 BOM CSV</h2>
+    <div style="font-size:13px;color:#666;margin-bottom:10px;">
+      <b>方式 1（推荐）</b>：两个 CSV 同时导入 —— 助剂 CSV + 参数 CSV<br>
+      助剂 CSV 列：<code>sioc,process_name,stage,aux_code,aux_name,standard_dose,dose_unit,tolerance_pct</code><br>
+      参数 CSV 列：<code>sioc,process_name,stage,param_name,param_unit,standard_value</code>
+    </div>
+    <div style="margin-bottom:10px;">
+      <button type="button" class="mini-btn" onclick="downloadBomItemsTemplate()">⬇ 助剂 CSV 模板</button>
+      <button type="button" class="mini-btn" onclick="downloadBomParamsTemplate()">⬇ 参数 CSV 模板</button>
+    </div>
+    <label style="font-size:13px;display:block;margin-bottom:6px;">助剂 CSV（可空）</label>
+    <input type="file" id="bomItemsFile" accept=".csv" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;margin-bottom:10px;" />
+    <label style="font-size:13px;display:block;margin-bottom:6px;">参数 CSV（可空）</label>
+    <input type="file" id="bomParamsFile" accept=".csv" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;margin-bottom:10px;" />
+
+    <div class="modal-actions">
+      <button onclick="doBomImport()">开始导入</button>
+      <button onclick="closeBomImportModal()" class="cancel">取消</button>
+    </div>
+    <p id="bomImportMsg" class="msg" style="white-space:pre-wrap;max-height:200px;overflow:auto;"></p>
+  </div>
+</div>
+
+<!-- ==================== 报表页 ==================== -->
+<div id="reportPage" class="main-page" style="display:none;">
+  <header>
+    <div class="brand-logo">JP TEXTILE ETHIOPIA PLC</div>
+    <div class="header-top-row">
+      <div class="header-user">
+        <button onclick="toggleLang()" class="lang-btn">EN / 中文</button>
+        <span id="userEmailReport"></span>
+      </div>
+    </div>
+  </header>
+  <div class="nav-bar">
+    <button onclick="goToDashboard()">🏠 仪表盘</button>
+    <button onclick="goToOrders()">📋 订单清单</button>
+    <button onclick="showBomPage()">🧪 BOM 管理</button>
+    <button onclick="showReport()">📊 报表</button>
+    <button onclick="showLogs()">📜 操作记录</button>
+    <button onclick="showSysLogs()" data-role="admin">🛠 系统日志</button>
+    <button onclick="openPwdModal()">🔑 修改密码</button>
+    <button onclick="logout()">🚪 退出</button>
+  </div>
+  <div class="header-actions-row"><h1>工艺报表</h1></div>
+  <div class="toolbar">
+    <label>月份 <input id="reportMonth" type="month" /></label>
+    <button onclick="loadReport()">查询</button>
+  </div>
+  <div class="dash-cards">
+    <div class="dash-card"><div class="dash-label">订单数</div><div class="dash-value" id="repOrders">0</div></div>
+    <div class="dash-card"><div class="dash-label">已完成</div><div class="dash-value" id="repDone">0</div></div>
+    <div class="dash-card warn"><div class="dash-label">超标总数</div><div class="dash-value" id="repOOS">0</div></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Contract</th><th>客户</th><th>成品号</th><th>颜色</th>
+          <th>状态</th><th>工序数</th><th>参数数</th><th>助剂数</th><th>超标数</th>
+        </tr>
+      </thead>
+      <tbody id="reportBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== 操作记录 ==================== -->
+<div id="logsPage" class="main-page" style="display:none;">
+  <header>
+    <div class="brand-logo">JP TEXTILE ETHIOPIA PLC</div>
+    <div class="header-top-row">
+      <div class="header-user">
+        <button onclick="toggleLang()" class="lang-btn">EN / 中文</button>
+        <span id="userEmailLogs"></span>
+      </div>
+    </div>
+  </header>
+  <div class="nav-bar">
+    <button onclick="goToDashboard()">🏠 仪表盘</button>
+    <button onclick="goToOrders()">📋 订单清单</button>
+    <button onclick="showBomPage()">🧪 BOM 管理</button>
+    <button onclick="showReport()">📊 报表</button>
+    <button onclick="showLogs()">📜 操作记录</button>
+    <button onclick="showSysLogs()" data-role="admin">🛠 系统日志</button>
+    <button onclick="openPwdModal()">🔑 修改密码</button>
+    <button onclick="logout()">🚪 退出</button>
+  </div>
+  <div class="header-actions-row"><h1>操作记录</h1></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>#</th><th>时间</th><th>操作人</th><th>动作</th><th>单号</th><th>详情</th></tr>
+      </thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== 系统日志 ==================== -->
+<div id="sysLogsPage" class="main-page" style="display:none;">
+  <header>
+    <div class="brand-logo">JP TEXTILE ETHIOPIA PLC</div>
+    <div class="header-top-row">
+      <div class="header-user">
+        <button onclick="toggleLang()" class="lang-btn">EN / 中文</button>
+        <span id="userEmailSysLogs"></span>
+      </div>
+    </div>
+  </header>
+  <div class="nav-bar">
+    <button onclick="goToDashboard()">🏠 仪表盘</button>
+    <button onclick="goToOrders()">📋 订单清单</button>
+    <button onclick="showBomPage()">🧪 BOM 管理</button>
+    <button onclick="showReport()">📊 报表</button>
+    <button onclick="showLogs()">📜 操作记录</button>
+    <button onclick="showSysLogs()" data-role="admin">🛠 系统日志</button>
+    <button onclick="openPwdModal()">🔑 修改密码</button>
+    <button onclick="logout()">🚪 退出</button>
+  </div>
+  <div class="header-actions-row"><h1>系统日志</h1></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>#</th><th>时间</th><th>操作人</th><th>动作</th><th>详情</th></tr>
+      </thead>
+      <tbody id="sysLogBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== 修改密码弹窗 ==================== -->
+<div id="pwdModal" class="modal" style="display:none;">
+  <div class="modal-box" style="width:400px;">
+    <h2>修改密码</h2>
+    <input id="pwd_new" type="password" placeholder="新密码" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #ddd;border-radius:8px;" />
+    <input id="pwd_confirm" type="password" placeholder="确认新密码" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #ddd;border-radius:8px;" />
+    <div class="modal-actions">
+      <button onclick="savePassword()">保存</button>
+      <button onclick="closePwdModal()" class="cancel">取消</button>
+    </div>
+    <p id="pwdMsg" class="msg"></p>
+  </div>
+</div>
+
+<div class="copyright">weiminguo<span class="at">@</span>2026</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+</body>
+</html>
