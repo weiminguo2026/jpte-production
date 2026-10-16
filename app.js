@@ -895,7 +895,7 @@ async function batchDeleteSelected() {
   await loadOrders();
 }
 // ============ 合同详情页（批次列表） ============
-aasync function openOrderDetail(orderId) {
+async function openOrderDetail(orderId) {
   currentOrderId = orderId;
   hideAll();
   document.getElementById("orderDetailPage").style.display = "block";
